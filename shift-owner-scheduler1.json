@@ -1,0 +1,188 @@
+{
+  "name": "shift-owner-scheduler",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 20
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [48, 688],
+      "id": "26e5cbee-a187-408f-97c1-440bbf508da6",
+      "name": "Schedule Trigger1"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get current time in IST\nconst now = new Date(\n  new Date().toLocaleString(\"en-US\", { timeZone: \"Asia/Kolkata\" })\n);\n\n// 👉 Move to TOMORROW\nnow.setDate(now.getDate() + 1);\n\n// 🛑 Skip Saturday (6) and Sunday (0)\nconst day = now.getDay();\nif (day === 0 || day === 6) {\n  return [\n    {\n      json: {\n        text: \"⏸️ No shifts tomorrow (Weekend)\"\n      }\n    }\n  ];\n}\n\n// Extract tomorrow's date & month\nconst todayDate = now.getDate();\nconst todayMonth = now\n  .toLocaleString(\"en-US\", { month: \"long\" })\n  .toLowerCase();\n\nconst matched = items.find(item => {\n  const data = item.json;\n\n  const itemDate = Number(\n    String(data[\"Date\"] || data[\" Date\"] || \"\").trim()\n  );\n\n  const itemMonth = String(\n    data[\"Month\"] || data[\" Month\"] || \"\"\n  )\n    .trim()\n    .toLowerCase();\n\n  return (\n    itemDate === todayDate &&\n    itemMonth.includes(todayMonth)\n  );\n});\n\nif (!matched) {\n  return [\n    {\n      json: {\n        error: `❌ No shift found for ${todayDate} ${todayMonth}`\n      }\n    }\n  ];\n}\n\nconst data = matched.json;\n\nconst shiftOwner =\n  data[\"9:00AM - 6:00PM\"] ||\n  data[\"9:00 AM - 6:00 PM\"] ||\n  \"Not assigned\";\n\nconst onCall =\n  data[\"on call support\"] ||\n  data[\" on call support\"] ||\n  \"Not assigned\";\n\nreturn [\n  {\n    json: {\n      text: `📅 *Shift Details (Tomorrow)*\\n\\n🗓 Date: ${todayDate} ${todayMonth}\\n🕘 *9:00AM - 6:00PM*: ${shiftOwner}\\n📞 *On Call Support*: ${onCall}`\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [464, 688],
+      "id": "76588a95-713e-4847-999e-910efc288849",
+      "name": "Code in JavaScript",
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "operation": "sendAndWait",
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "your_slack_channel_id",
+          "mode": "id"
+        },
+        "message": "={{ $json.text }}",
+        "approvalOptions": {
+          "values": {
+            "approvalType": "double"
+          }
+        }
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.4,
+      "position": [896, 736],
+      "id": "719baf3d-7734-407b-97cc-6ed5db7d06e5",
+      "name": "Send message and wait for response1",
+      "webhookId": "Your_webhookId"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "conditions": [
+            {
+              "leftValue": "={{ $json.data.approved }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [1088, 736],
+      "id": "b892b3f5-d429-45e4-8fd5-e87c0c5df9e9",
+      "name": "If1"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "Your_spread_sheed_node",
+          "mode": "url"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1326640014,
+          "mode": "list"
+        }
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [256, 688],
+      "id": "b19529f5-221a-49f7-808c-a0aaed3fcf48",
+      "name": "Get row(s) in sheet"
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "Channel_id",
+          "mode": "id"
+        },
+        "text": "=🎉 *Approved!*  👤 <@{{ $('Get row(s) in sheet').item.json['9:00AM - 6:00PM'] }}> will handle tomorrow's shift."
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.4,
+      "position": [1296, 592],
+      "id": "2c267b4e-2c49-411e-844e-c373e3fbed78",
+      "name": "Send a message",
+      "webhookId": "Your_webhook619"
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "slack_channel_id",
+          "mode": "id"
+        },
+        "text": "uri_of_slack_channel_id"
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.4,
+      "position": [1296, 784],
+      "id": "b3245c0a6",
+      "name": "Send a message1",
+      "webhookId": "a22b6c74c50"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1demog",
+          "mode": "list"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list"
+        }
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [1504, 784],
+      "id": "9469e1ab-9692-418a-b41d-10f110c72b2e",
+      "name": "Get row(s) in sheet1"
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "demo",
+          "mode": "id"
+        },
+        "text": "=🎉 *Approved!* 👤 <@{{ $('Get row(s) in sheet').item.json['9:00AM - 6:00PM'] }}> will handle tomorrow's shift."
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.4,
+      "position": [1712, 784],
+      "id": "789301d7-e2c2-47e1-b7e9-6dc90fe7f20f",
+      "name": "Send a message2",
+      "webhookId": "d-89f1"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "conditions": [
+            {
+              "leftValue": "={{ $json.text }}",
+              "rightValue": "⏸️ No shifts tomorrow (Weekend)",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [672, 688],
+      "id": "9d466f48-0bd4-4dd2-9b35-065dc04a61f7",
+      "name": "If"
+    }
+  ],
+  "connections": { }
+}
