@@ -240,3 +240,214 @@ This workflow performs the following steps:
 ---
 
 ## Architecture Flow
+
+```
+Gmail Trigger
+   ↓
+AI Agent (Email Analysis)
+   ↓
+Structured Output Parser
+   ↓
+IF (ticket && cc_support)
+   ↓
+Slack Approval (sendAndWait)
+   ↓
+IF (approved)
+   ↓
+Zendesk Ticket Creation
+   ↓
+Slack Notification
+```
+
+---
+
+## Features
+
+* Automated email monitoring (runs every minute)
+* AI-based classification of cloud incidents
+* Detects:
+
+  * Infrastructure issues
+  * Outages
+  * Billing problems
+  * Urgency signals
+* Extracts sender email intelligently
+* Slack-based approval system
+* Zendesk ticket auto-creation
+* End-to-end automation with minimal manual effort
+
+---
+
+## Node Details
+
+### 1. Gmail Trigger
+
+* Polls inbox every minute
+* Captures:
+
+  * Subject
+  * From
+  * Email snippet
+
+---
+
+### 2. AI Agent
+
+* Uses LLM to analyze email content
+* Determines:
+
+  * ticket (true/false)
+  * cc_support (true/false)
+  * sender
+  * ticket_summary
+
+---
+
+### 3. Structured Output Parser
+
+Ensures output follows strict JSON format:
+
+```json
+{
+  "ticket": boolean,
+  "cc_support": boolean,
+  "sender": string,
+  "ticket_summary": string
+}
+```
+
+---
+
+### 4. IF Node (Condition Check)
+
+Checks:
+
+* ticket == true
+* cc_support == true
+
+Only proceeds if both are true.
+
+---
+
+### 5. Slack Approval (sendAndWait)
+
+Sends message:
+
+```
+Cloud Ticket Decision
+Ticket: true/false
+CC: true/false
+Summary: <AI Generated Summary>
+```
+
+Waits for approval response.
+
+---
+
+### 6. IF Node (Approval Check)
+
+Condition:
+
+```
+approved == true
+```
+
+---
+
+### 7. Zendesk Ticket Creation
+
+Creates a ticket with:
+
+* Description includes:
+
+  * Ticket status flags
+  * Reporter email
+  * Incident summary
+  * Auto-generated message
+
+---
+
+### 8. Slack Notification
+
+Sends confirmation:
+
+```
+Ticket created in Zendesk
+```
+
+---
+
+## Setup Instructions
+
+### 1. Import Workflow
+
+* Open n8n
+* Go to Workflows
+* Click "Import from JSON"
+* Paste the provided JSON
+
+---
+
+### 2. Configure Credentials
+
+You must configure:
+
+* Gmail OAuth
+* Slack API
+* Zendesk API
+* Groq / LLM API
+
+---
+
+### 3. Update Nodes
+
+* Gmail Trigger → select account
+* Slack nodes → select workspace + channel
+* Zendesk node → configure domain + API token
+* AI Model → ensure API key is set
+
+---
+
+### 4. Activate Workflow
+
+* Toggle workflow to Active
+* Ensure polling is working
+
+---
+
+## Use Cases
+
+* Cloud support automation
+* Incident detection system
+* DevOps alert pipeline
+* IT support triage automation
+* Email-to-ticket conversion system
+
+---
+
+## Important Notes
+
+* Ensure Slack approval step has proper permissions
+* Zendesk API access must be enabled
+* AI output must strictly match schema (or workflow may fail)
+* Gmail polling frequency can be adjusted if needed
+
+---
+
+## Future Improvements
+
+* Add priority tagging (P1, P2, etc.)
+* Auto-assign tickets in Zendesk
+* Add logging (Google Sheets / DB)
+* Integrate monitoring tools (AWS, GCP alerts)
+* Add retry/failure handling
+
+---
+
+## Status
+
+Inactive by default ("active": false).
+Enable manually after setup.
+
+---
+
