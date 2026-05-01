@@ -216,3 +216,27 @@ Built to simplify shift scheduling using automation.
 ---
 
 For advanced use cases such as multi-team scheduling, escalation handling, auto-updating sheets, or Slack form integration, this workflow can be extended further.
+
+
+# Gmail → Slack → Zendesk Automation (n8n)
+
+This project is an automated cloud support ticketing workflow built using n8n, integrating Gmail, AI analysis, Slack approval, and Zendesk ticket creation.
+
+It monitors incoming emails, detects potential cloud incidents using AI, and creates Zendesk tickets after Slack approval.
+
+---
+
+## Overview
+
+This workflow performs the following steps:
+
+1. Continuously monitors Gmail inbox
+2. Uses AI to analyze incoming emails
+3. Detects if the email qualifies as a cloud support incident
+4. Sends a Slack approval request
+5. Creates a Zendesk ticket if approved
+6. Sends confirmation notification to Slack
+
+---
+
+## Architecture Flow
