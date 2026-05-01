@@ -1,0 +1,154 @@
+{
+  "name": "Gmail_slack_zendesk_automation",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "filters": {}
+      },
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.3,
+      "position": [-272, -80],
+      "id": "6893e747-aa0c-465b-9677-76c1881ee6a7",
+      "name": "Gmail Trigger",
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "description": "=Cloud Support Incident  A cloud-related issue has been automatically logged.  Status Flags: - Ticket Required: {{$json[\"output\"][\"ticket\"]}} - Critical Alert: {{$json[\"output\"][\"cc_support\"]}}  Reporter: {{$json[\"output\"][\"sender\"] || \"Unknown\"}}  Please investigate system impact, check logs, and restore service if required.  Generated automatically via n8n workflow.",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.zendesk",
+      "typeVersion": 1,
+      "position": [1424, -144],
+      "id": "ad287601-853a-4705-ab60-012f917859e0",
+      "name": "Create a ticket",
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "You are a specialist at identifying cloud support ticket requests.\n\nAnalyze the following email:\n\nSubject: {{ $json.Subject }}\n\nFrom: {{ $json.From }}\n\nBody: {{ $json.snippet }}\n\nInstructions:\n\n1. Extract the sender email from the \"From\" field.\n2. Ignore Zendesk emails.\n3. Detect outages, infra issues, billing problems.\n4. Detect urgency keywords.\n5. Generate short summary if ticket=true.\n\nReturn JSON with ticket, cc_support, sender, ticket_summary.",
+        "hasOutputParser": true,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [-64, -80],
+      "id": "490733a1-6c7a-45fe-8bc3-a829ffb08b16",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-20b",
+        "options": {
+          "maxTokensToSample": 1500,
+          "temperature": 0
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [-192, 128],
+      "id": "67eb8fb6-7be3-4806-915e-195cd55beebe",
+      "name": "Groq Chat Model",
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "documentURL": ""
+      },
+      "type": "n8n-nodes-base.googleDocsTool",
+      "typeVersion": 2,
+      "position": [96, 128],
+      "id": "-181d-4a2c-b291-7cce021e884f",
+      "name": "Get a document in Google Docs",
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"ticket\": {\"type\": \"boolean\"},\n    \"cc_support\": {\"type\": \"boolean\"},\n    \"sender\": {\"type\": \"string\"},\n    \"ticket_summary\": {\"type\": \"string\"}\n  },\n  \"required\": [\"ticket\", \"cc_support\", \"sender\", \"ticket_summary\"]\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [208, 224],
+      "id": "836e6904-1508-461d-94dc-d9005d5182e9",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "conditions": [
+            {
+              "leftValue": "={{ $json.output.ticket }}",
+              "operator": { "type": "boolean", "operation": "true" }
+            },
+            {
+              "leftValue": "={{ $json.output.cc_support }}",
+              "operator": { "type": "boolean", "operation": "true" }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [464, 112],
+      "id": "67bbd285-3585-4a89-9a10-0d06a48ca521",
+      "name": "If1"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "conditions": [
+            {
+              "leftValue": "={{ $json.data.approved }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "equals" }
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [960, 0],
+      "id": "9a4f1166-926a-4151-9c9c-9f22b9fab7d8",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "operation": "sendAndWait",
+        "message": "Cloud Ticket Decision\nTicket: {{$json.output.ticket}}\nCC: {{$json.output.cc_support}}\nSummary: {{$json.output.ticket_summary}}"
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.4,
+      "position": [736, 0],
+      "id": "e7aac6f6-0e5d-4e1e-b633-888b0e7f2d71",
+      "name": "Slack Approval",
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "text": "Ticket created in Zendesk"
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.4,
+      "position": [1616, -160],
+      "id": "29161037-ddd6-40ad-8016-17380fa3712a",
+      "name": "Slack Notify",
+      "credentials": {}
+    }
+  ],
+  "connections": {},
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
